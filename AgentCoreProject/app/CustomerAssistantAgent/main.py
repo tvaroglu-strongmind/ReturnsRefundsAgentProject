@@ -4,6 +4,9 @@ import sys
 import time
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 from strands import Agent
 from strands_tools import current_time
