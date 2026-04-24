@@ -15,10 +15,54 @@
       "codeLocation": "app/CustomerAssistantAgent/",
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
-      "protocol": "HTTP"
+      "protocol": "HTTP",
+      "envVars": [
+        {
+          "name": "MEMORY_ID",
+          "value": "AgentCoreProject_CustomerAssistantMemory-KaS3ez4A4O"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "us-west-2"
+        }
+      ]
     }
   ],
-  "memories": [],
+  "memories": [
+    {
+      "name": "CustomerAssistantMemory",
+      "eventExpiryDuration": 7,
+      "strategies": [
+        {
+          "type": "SEMANTIC",
+          "namespaces": [
+            "/facts/{actorId}/"
+          ]
+        },
+        {
+          "type": "SUMMARIZATION",
+          "namespaces": [
+            "/summaries/{actorId}/{sessionId}/"
+          ]
+        },
+        {
+          "type": "USER_PREFERENCE",
+          "namespaces": [
+            "/preferences/{actorId}/"
+          ]
+        },
+        {
+          "type": "EPISODIC",
+          "namespaces": [
+            "/episodes/{actorId}/{sessionId}/"
+          ],
+          "reflectionNamespaces": [
+            "/episodes/{actorId}/"
+          ]
+        }
+      ]
+    }
+  ],
   "credentials": [],
   "evaluators": [],
   "onlineEvalConfigs": [],
