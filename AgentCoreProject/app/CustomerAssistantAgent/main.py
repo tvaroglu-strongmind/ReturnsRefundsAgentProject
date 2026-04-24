@@ -1,3 +1,5 @@
+import logging
+import sys
 from strands import Agent, tool
 from strands_tools import current_time
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
@@ -8,8 +10,17 @@ from mcp_client.client import get_streamable_http_mcp_client
 from datetime import datetime, timedelta
 import os
 
+# Configure root logger so ALL loggers (including SDK memory internals) emit to stderr.
+# force=True reconfigures even if a prior basicConfig or library already set handlers.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    stream=sys.stderr,
+    force=True,
+)
+
 app = BedrockAgentCoreApp()
-log = app.logger
+log = logging.getLogger(__name__)
 
 # Memory configuration
 MEMORY_ID = os.environ.get("MEMORY_ID")
@@ -210,81 +221,59 @@ Guidelines:
 """
 
 def get_or_create_agent(actor_id: str = DEFAULT_ACTOR_ID, session_id: str = None):
-    """
-    Create an agent with memory configured for the given actor and session.
-    Each session gets a fresh agent instance to ensure proper memory isolation.
-    """
-    # Generate session_id if not provided
+    """Create an agent with memory configured for the given actor and session."""
     if not session_id:
         session_id = f"session_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    
-    log.info(f"Creating agent with actor_id={actor_id}, session_id={session_id}")
-    
-    # Configure memory session manager with retrieval config
+
+    log.info("Creating agent: actor_id=%s, session_id=%s, MEMORY_ID=%s", actor_id, session_id, MEMORY_ID)
+
     session_manager = None
     if MEMORY_ID:
-        log.info(f"Configuring memory: MEMORY_ID={MEMORY_ID}, AWS_REGION={AWS_REGION}")
-        
-        # Configure retrieval config with namespace patterns matching agentcore.json
         retrieval_config = {
-            "/facts/{actorId}/": RetrievalConfig(top_k=10, relevance_score=0.7),
-            "/summaries/{actorId}/{sessionId}/": RetrievalConfig(top_k=5, relevance_score=0.5),
-            "/preferences/{actorId}/": RetrievalConfig(top_k=5, relevance_score=0.7),
-            "/episodes/{actorId}/{sessionId}/": RetrievalConfig(top_k=10, relevance_score=0.6),
-            "/episodes/{actorId}/": RetrievalConfig(top_k=5, relevance_score=0.6)
+            "/facts/{actorId}/": RetrievalConfig(top_k=10, relevance_score=0.3),
+            "/summaries/{actorId}/{sessionId}/": RetrievalConfig(top_k=5, relevance_score=0.3),
+            "/preferences/{actorId}/": RetrievalConfig(top_k=5, relevance_score=0.3),
+            "/episodes/{actorId}/{sessionId}/": RetrievalConfig(top_k=10, relevance_score=0.3),
+            "/episodes/{actorId}/": RetrievalConfig(top_k=5, relevance_score=0.3),
         }
-        
-        log.info(f"Retrieval namespaces: {list(retrieval_config.keys())}")
-        
-        # Configure memory
+
         agentcore_memory_config = AgentCoreMemoryConfig(
             memory_id=MEMORY_ID,
             session_id=session_id,
             actor_id=actor_id,
-            retrieval_config=retrieval_config
+            retrieval_config=retrieval_config,
         )
-        
-        # Create session manager
+
         session_manager = AgentCoreMemorySessionManager(
             agentcore_memory_config=agentcore_memory_config,
-            region_name=AWS_REGION
+            region_name=AWS_REGION,
         )
-        log.info("Memory session manager created successfully")
+        log.info("Memory session manager created with %d retrieval namespaces", len(retrieval_config))
     else:
         log.warning("MEMORY_ID not set - memory will not be enabled")
-    
-    # Create new agent for this session
+
     agent = Agent(
         model=load_model(),
         system_prompt=SYSTEM_PROMPT,
         tools=tools,
-        session_manager=session_manager
+        session_manager=session_manager,
     )
-    
-    log.info(f"Agent created for session_id={session_id}")
     return agent
 
 
 @app.entrypoint
 async def invoke(payload, context):
-    log.info("=== INVOKE CALLED ===")
-    log.info(f"Payload keys: {list(payload.keys())}")
-
-    # AgentCore CLI sends "userId" not "actor_id"
-    # Try both for compatibility
     actor_id = payload.get("userId") or payload.get("actor_id") or DEFAULT_ACTOR_ID
     session_id = payload.get("sessionId") or payload.get("session_id")
-    
-    log.info(f"Configuration: actor_id={actor_id}, session_id={session_id}")
-    log.info(f"Environment: MEMORY_ID={MEMORY_ID}, AWS_REGION={AWS_REGION}")
-    
+
+    log.info("Invoke called: actor_id=%s, session_id=%s, prompt=%s",
+             actor_id, session_id, (payload.get("prompt") or "")[:80])
+
     agent = get_or_create_agent(actor_id=actor_id, session_id=session_id)
 
-    # Execute and format response
     stream = agent.stream_async(payload.get("prompt"))
 
     async for event in stream:
-        # Handle Text parts of the response
         if "data" in event and isinstance(event["data"], str):
             yield event["data"]
 
