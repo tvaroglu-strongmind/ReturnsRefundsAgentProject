@@ -1,0 +1,14 @@
+# Strands Agents SDK - Core framework for building AI agents
+strands-agents
+
+# Strands Agents Tools - Community-driven tools package
+strands-agents-tools
+
+# Strands Agents Builder - Agent development helper
+strands-agents-builder
+
+# AWS Bedrock AgentCore SDK - For deploying to AgentCore Runtime
+bedrock-agentcore
+
+# AWS SDK for Python - For AWS service interactions
+boto3
