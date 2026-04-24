@@ -1,15 +1,18 @@
 import logging
 import os
 import sys
-from datetime import datetime, timedelta
+import time
+import requests
+from datetime import datetime
 
-from strands import Agent, tool
+from strands import Agent
 from strands_tools import current_time
+from strands.tools.mcp.mcp_client import MCPClient
+from mcp.client.streamable_http import streamablehttp_client
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from bedrock_agentcore.memory.integrations.strands.session_manager import AgentCoreMemorySessionManager
 from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig, RetrievalConfig
 from model.load import load_model
-from mcp_client.client import get_streamable_http_mcp_client
 
 # agentcore dev discards stderr/stdout, so also write to a file that can be tailed:
 #   tail -f AgentCoreProject/app/CustomerAssistantAgent/agent.log
@@ -32,180 +35,77 @@ MEMORY_ID = os.environ.get("MEMORY_ID")
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 DEFAULT_ACTOR_ID = "default-user"  # Match what AgentCore CLI uses
 
-# Define a Streamable HTTP MCP Client
-mcp_clients = [get_streamable_http_mcp_client()]
+# Gateway OAuth configuration
+GATEWAY_URL = os.environ.get("GATEWAY_URL")
+GATEWAY_CLIENT_ID = os.environ.get("GATEWAY_CLIENT_ID")
+GATEWAY_CLIENT_SECRET = os.environ.get("GATEWAY_CLIENT_SECRET")
+GATEWAY_TOKEN_ENDPOINT = os.environ.get("GATEWAY_TOKEN_ENDPOINT")
+GATEWAY_SCOPE = os.environ.get("GATEWAY_SCOPE")
 
-# Define a collection of tools used by the model
-tools = []
-
-# Add built-in current_time tool
-tools.append(current_time)
-
-# Mock data for tools
-MOCK_ORDERS = {
-    "ORD-001": {
-        "order_id": "ORD-001",
-        "customer_id": "C-01",
-        "product_id": "P-001",
-        "product_name": "iPhone 15 Pro",
-        "status": "DELIVERED",
-        "purchase_date": (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d"),
-    },
-    "ORD-002": {
-        "order_id": "ORD-002",
-        "customer_id": "C-02",
-        "product_id": "P-003",
-        "product_name": "Kindle Paperwhite",
-        "status": "DELIVERED",
-        "purchase_date": (datetime.now() - timedelta(days=45)).strftime("%Y-%m-%d"),
-    },
-    "ORD-003": {
-        "order_id": "ORD-003",
-        "customer_id": "C-01",
-        "product_id": "P-005",
-        "product_name": "PlayStation 5",
-        "status": "SHIPPED",
-        "purchase_date": datetime.now().strftime("%Y-%m-%d"),
-    },
+# Token cache
+_token_cache = {
+    "access_token": None,
+    "expires_at": 0
 }
 
-MOCK_USERS = {
-    "C-01": {
-        "user_id": "C-01",
-        "name": "Rajesh Kumar",
-        "country": "IN",
-        "email": "rajesh@example.com",
-    },
-    "C-02": {
-        "user_id": "C-02",
-        "name": "Sarah Johnson",
-        "country": "US",
-        "email": "sarah@example.com",
-    },
-    "C-03": {
-        "user_id": "C-03",
-        "name": "James Wilson",
-        "country": "UK",
-        "email": "james@example.com",
-    },
-}
 
-MOCK_PRODUCTS = {
-    "P-001": {
-        "product_id": "P-001",
-        "name": "iPhone 15 Pro",
-        "brand": "Apple",
-        "category": "phone",
-    },
-    "P-002": {
-        "product_id": "P-002",
-        "name": "Kindle Paperwhite",
-        "brand": "Amazon",
-        "category": "e-book",
-    },
-    "P-003": {
-        "product_id": "P-003",
-        "name": "iPad Air",
-        "brand": "Apple",
-        "category": "tablet",
-    },
-}
-
-MOCK_POLICIES = {
-    "electronics": {
-        "category": "electronics",
-        "return_window_days": 30,
-        "refund_percentage": 100,
-        "conditions": "100% refund if unopened, otherwise subject to inspection",
-    },
-    "clothing": {
-        "category": "clothing",
-        "return_window_days": 60,
-        "refund_percentage": 100,
-        "conditions": "Full refund with tags attached and unworn",
-    },
-    "books": {
-        "category": "books",
-        "return_window_days": 14,
-        "refund_percentage": 50,
-        "conditions": "50% refund on all book returns",
-    },
-}
-
-@tool
-def order_lookup(order_id: str) -> str:
-    """Look up order details by order ID"""
-    order = MOCK_ORDERS.get(order_id)
-    if not order:
-        return f"Order {order_id} not found"
+def get_gateway_access_token():
+    """Get or refresh the gateway access token."""
+    # Check if we have a valid cached token
+    if _token_cache["access_token"] and time.time() < _token_cache["expires_at"] - 60:
+        log.debug("Using cached gateway access token")
+        return _token_cache["access_token"]
     
-    return f"""Order Details:
-- Order ID: {order['order_id']}
-- Customer ID: {order['customer_id']}
-- Product ID: {order['product_id']}
-- Product Name: {order['product_name']}
-- Status: {order['status']}
-- Purchase Date: {order['purchase_date']}"""
-
-tools.append(order_lookup)
-
-@tool
-def user_lookup(user_id: str) -> str:
-    """Retrieve customer information by user ID"""
-    user = MOCK_USERS.get(user_id)
-    if not user:
-        return f"User {user_id} not found"
+    # Get new token
+    log.info("Obtaining new gateway access token from %s", GATEWAY_TOKEN_ENDPOINT)
     
-    return f"""Customer Details:
-- User ID: {user['user_id']}
-- Name: {user['name']}
-- Country: {user['country']}
-- Email: {user['email']}"""
+    try:
+        response = requests.post(
+            GATEWAY_TOKEN_ENDPOINT,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            data={
+                'grant_type': 'client_credentials',
+                'client_id': GATEWAY_CLIENT_ID,
+                'client_secret': GATEWAY_CLIENT_SECRET,
+                'scope': GATEWAY_SCOPE
+            },
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        token_data = response.json()
+        access_token = token_data['access_token']
+        expires_in = token_data.get('expires_in', 3600)
+        
+        # Cache the token
+        _token_cache["access_token"] = access_token
+        _token_cache["expires_at"] = time.time() + expires_in
+        
+        log.info("Gateway access token obtained, expires in %d seconds", expires_in)
+        return access_token
+        
+    except Exception as e:
+        log.error("Failed to obtain gateway access token: %s", e)
+        raise
 
-tools.append(user_lookup)
 
-@tool
-def product_lookup(product_id: str) -> str:
-    """Retrieve product information by product ID"""
-    product = MOCK_PRODUCTS.get(product_id)
-    if not product:
-        return f"Product {product_id} not found"
+def create_gateway_mcp_client():
+    """Create an MCP client for the AgentCore Gateway."""
+    if not GATEWAY_URL:
+        log.warning("GATEWAY_URL not set - gateway tools will not be available")
+        return None
     
-    return f"""Product Details:
-- Product ID: {product['product_id']}
-- Name: {product['name']}
-- Brand: {product['brand']}
-- Category: {product['category']}"""
-
-tools.append(product_lookup)
-
-@tool
-def policy_retrieval(query: str) -> str:
-    """Retrieve return policy information based on query"""
-    query_lower = query.lower()
+    def create_transport(headers=None):
+        """Create streamable HTTP transport with OAuth token."""
+        access_token = get_gateway_access_token()
+        auth_headers = {**headers} if headers else {}
+        auth_headers["Authorization"] = f"Bearer {access_token}"
+        
+        log.debug("Creating gateway transport to %s", GATEWAY_URL)
+        return streamablehttp_client(GATEWAY_URL, headers=auth_headers)
     
-    # Simple keyword matching for categories
-    for category, policy in MOCK_POLICIES.items():
-        if category in query_lower:
-            return f"""Return Policy for {policy['category'].title()}:
-- Return Window: {policy['return_window_days']} days
-- Refund Percentage: {policy['refund_percentage']}%
-- Conditions: {policy['conditions']}"""
-    
-    # Return all policies if no specific match
-    all_policies = "\n\n".join([
-        f"{policy['category'].title()}: {policy['return_window_days']} days, {policy['refund_percentage']}% refund - {policy['conditions']}"
-        for policy in MOCK_POLICIES.values()
-    ])
-    return f"Available Return Policies:\n\n{all_policies}"
+    return MCPClient(create_transport)
 
-tools.append(policy_retrieval)
-
-
-# Add MCP client to tools if available
-for mcp_client in mcp_clients:
-    if mcp_client:
-        tools.append(mcp_client)
 
 SYSTEM_PROMPT = """
 You are a Returns & Refunds Assistant helping administrators manage customer returns and refunds.
@@ -232,6 +132,7 @@ def get_or_create_agent(actor_id: str = DEFAULT_ACTOR_ID, session_id: str = None
 
     log.info("Creating agent: actor_id=%s, session_id=%s, MEMORY_ID=%s", actor_id, session_id, MEMORY_ID)
 
+    # Configure memory session manager
     session_manager = None
     if MEMORY_ID:
         retrieval_config = {
@@ -256,6 +157,17 @@ def get_or_create_agent(actor_id: str = DEFAULT_ACTOR_ID, session_id: str = None
         log.info("Memory session manager created with %d retrieval namespaces", len(retrieval_config))
     else:
         log.warning("MEMORY_ID not set - memory will not be enabled")
+
+    # Build tools list
+    tools = [current_time]  # Always include current_time
+    
+    # Add gateway MCP client if configured
+    gateway_client = create_gateway_mcp_client()
+    if gateway_client:
+        log.info("Adding gateway MCP client to tools")
+        tools.append(gateway_client)
+    else:
+        log.warning("Gateway MCP client not configured - gateway tools will not be available")
 
     agent = Agent(
         model=load_model(),
