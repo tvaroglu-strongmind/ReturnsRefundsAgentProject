@@ -1,5 +1,8 @@
 import logging
+import os
 import sys
+from datetime import datetime, timedelta
+
 from strands import Agent, tool
 from strands_tools import current_time
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
@@ -7,15 +10,17 @@ from bedrock_agentcore.memory.integrations.strands.session_manager import AgentC
 from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig, RetrievalConfig
 from model.load import load_model
 from mcp_client.client import get_streamable_http_mcp_client
-from datetime import datetime, timedelta
-import os
 
-# Configure root logger so ALL loggers (including SDK memory internals) emit to stderr.
-# force=True reconfigures even if a prior basicConfig or library already set handlers.
+# agentcore dev discards stderr/stdout, so also write to a file that can be tailed:
+#   tail -f AgentCoreProject/app/CustomerAssistantAgent/agent.log
+_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    stream=sys.stderr,
+    handlers=[
+        logging.StreamHandler(sys.stderr),
+        logging.FileHandler(_LOG_FILE, mode="a"),
+    ],
     force=True,
 )
 
