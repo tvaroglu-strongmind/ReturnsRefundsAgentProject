@@ -1,0 +1,17 @@
+[
+  {
+    "name": "policy_retrieval",
+    "description": "Retrieve return policy information from the Bedrock Knowledge Base using natural language queries. Use this to find policies by product category (electronics, clothing, books), country (US, UK, etc.), or specific policy questions about return windows, refund percentages, and conditions. Returns relevant policy excerpts with relevance scores.",
+    "inputSchema": {
+      "type": "object",
+      "description": "Parameters for policy retrieval",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Natural language query about return policies. Examples: 'electronics return policy in US', 'return window for clothing', 'refund policy for books'"
+        }
+      },
+      "required": ["query"]
+    }
+  }
+]

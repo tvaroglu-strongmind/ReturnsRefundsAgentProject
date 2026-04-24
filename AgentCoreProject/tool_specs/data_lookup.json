@@ -1,0 +1,51 @@
+[
+  {
+    "name": "order_lookup",
+    "description": "Look up order information from DynamoDB. Can retrieve a specific order by customer_id and product_id, or all orders for a customer by customer_id only. Returns order details including status (DELIVERED, SHIPPED, OPENED) and purchase date.",
+    "inputSchema": {
+      "type": "object",
+      "description": "Parameters for order lookup",
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "description": "The customer ID (e.g., 'C-01')"
+        },
+        "product_id": {
+          "type": "string",
+          "description": "Optional product ID to look up a specific order (e.g., 'P-001'). If omitted, returns all orders for the customer."
+        }
+      },
+      "required": ["customer_id"]
+    }
+  },
+  {
+    "name": "user_lookup",
+    "description": "Look up customer information from DynamoDB by customer ID. Returns customer details including name and country code.",
+    "inputSchema": {
+      "type": "object",
+      "description": "Parameters for customer lookup",
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "description": "The customer ID (e.g., 'C-01')"
+        }
+      },
+      "required": ["customer_id"]
+    }
+  },
+  {
+    "name": "product_lookup",
+    "description": "Look up product information from DynamoDB by product ID. Returns product details including name, category, and provider/manufacturer.",
+    "inputSchema": {
+      "type": "object",
+      "description": "Parameters for product lookup",
+      "properties": {
+        "product_id": {
+          "type": "string",
+          "description": "The product ID (e.g., 'P-001')"
+        }
+      },
+      "required": ["product_id"]
+    }
+  }
+]
