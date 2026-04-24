@@ -14,8 +14,6 @@
       "entrypoint": "main.py",
       "codeLocation": "app/CustomerAssistantAgent/",
       "runtimeVersion": "PYTHON_3_14",
-      "networkMode": "PUBLIC",
-      "protocol": "HTTP",
       "envVars": [
         {
           "name": "MEMORY_ID",
@@ -24,8 +22,26 @@
         {
           "name": "AWS_REGION",
           "value": "us-west-2"
+        },
+        {
+          "name": "GATEWAY_URL",
+          "value": "https://agentcoreproject-workshop-gateway-yu9ba2ojw1.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp"
+        },
+        {
+          "name": "GATEWAY_CLIENT_ID",
+          "value": "6u97ftb4qibo9edskbq4cn7ohf"
+        },
+        {
+          "name": "GATEWAY_TOKEN_ENDPOINT",
+          "value": "https://workshop-gateway-1777065453.auth.us-west-2.amazoncognito.com/oauth2/token"
+        },
+        {
+          "name": "GATEWAY_SCOPE",
+          "value": "workshop-gateway/invoke"
         }
-      ]
+      ],
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
     }
   ],
   "memories": [
@@ -66,6 +82,40 @@
   "credentials": [],
   "evaluators": [],
   "onlineEvalConfigs": [],
-  "agentCoreGateways": [],
+  "agentCoreGateways": [
+    {
+      "name": "workshop-gateway",
+      "description": "Gateway for workshop-gateway",
+      "targets": [
+        {
+          "name": "data-lookup",
+          "targetType": "lambdaFunctionArn",
+          "lambdaFunctionArn": {
+            "lambdaArn": "arn:aws:lambda:us-west-2:369069562603:function:workshop-data-lookup",
+            "toolSchemaFile": "./tool_specs/data_lookup.json"
+          }
+        },
+        {
+          "name": "policy-retrieval",
+          "targetType": "lambdaFunctionArn",
+          "lambdaFunctionArn": {
+            "lambdaArn": "arn:aws:lambda:us-west-2:369069562603:function:workshop-policy-retrieval",
+            "toolSchemaFile": "./tool_specs/policy_retrieval.json"
+          }
+        }
+      ],
+      "authorizerType": "CUSTOM_JWT",
+      "authorizerConfiguration": {
+        "customJwtAuthorizer": {
+          "discoveryUrl": "https://cognito-idp.us-west-2.amazonaws.com/us-west-2_i5xoOpcNI/.well-known/openid-configuration",
+          "allowedClients": [
+            "6u97ftb4qibo9edskbq4cn7ohf"
+          ]
+        }
+      },
+      "enableSemanticSearch": true,
+      "exceptionLevel": "NONE"
+    }
+  ],
   "policyEngines": []
 }
