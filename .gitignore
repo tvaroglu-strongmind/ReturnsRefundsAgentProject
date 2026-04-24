@@ -40,6 +40,10 @@ cdk.out
 # AgentCore
 **/agentcore/.cache/
 **/agentcore/.cli/
+cognito_config.json
+
+# Logs
+*.log
 
 # IDE
 .vscode/
