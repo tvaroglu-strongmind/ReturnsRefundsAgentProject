@@ -1,0 +1,171 @@
+{
+  "tools": [
+    {
+      "name": "order_lookup",
+      "description": "Look up order information from DynamoDB. Can retrieve a specific order by customer_id and product_id, or all orders for a customer by customer_id only.",
+      "inputSchema": {
+        "type": "object",
+        "description": "Parameters for order lookup",
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "description": "The customer ID (e.g., 'C-01')"
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Optional product ID to look up a specific order (e.g., 'P-001')"
+          }
+        },
+        "required": ["customer_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Order lookup results",
+        "properties": {
+          "found": {
+            "type": "boolean",
+            "description": "Whether any orders were found"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of orders found (when querying all orders for a customer)"
+          },
+          "order": {
+            "type": "object",
+            "description": "Single order details (when querying specific order)",
+            "properties": {
+              "customer_id": {
+                "type": "string"
+              },
+              "product_id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "purchased_date": {
+                "type": "string"
+              }
+            }
+          },
+          "orders": {
+            "type": "array",
+            "description": "List of orders (when querying all orders for a customer)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "customer_id": {
+                  "type": "string"
+                },
+                "product_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "purchased_date": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if lookup failed"
+          }
+        }
+      }
+    },
+    {
+      "name": "user_lookup",
+      "description": "Look up customer information from DynamoDB by customer ID.",
+      "inputSchema": {
+        "type": "object",
+        "description": "Parameters for customer lookup",
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "description": "The customer ID (e.g., 'C-01')"
+          }
+        },
+        "required": ["customer_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Customer lookup results",
+        "properties": {
+          "found": {
+            "type": "boolean",
+            "description": "Whether the customer was found"
+          },
+          "customer": {
+            "type": "object",
+            "description": "Customer details",
+            "properties": {
+              "customer_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "country_code": {
+                "type": "string"
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if lookup failed"
+          }
+        }
+      }
+    },
+    {
+      "name": "product_lookup",
+      "description": "Look up product information from DynamoDB by product ID.",
+      "inputSchema": {
+        "type": "object",
+        "description": "Parameters for product lookup",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "The product ID (e.g., 'P-001')"
+          }
+        },
+        "required": ["product_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Product lookup results",
+        "properties": {
+          "found": {
+            "type": "boolean",
+            "description": "Whether the product was found"
+          },
+          "product": {
+            "type": "object",
+            "description": "Product details",
+            "properties": {
+              "product_id": {
+                "type": "string"
+              },
+              "product_name": {
+                "type": "string"
+              },
+              "product_category": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string"
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if lookup failed"
+          }
+        }
+      }
+    }
+  ]
+}
