@@ -46,6 +46,13 @@ This steering document ensures consistent, high-quality development for the Retu
 - Follow AgentCore deployment patterns
 - Implement proper agent configuration files
 - Test locally before deploying to Bedrock
+- **ALWAYS run `agentcore validate` after editing agentcore.json**
+- In agentcore.json, runtime envVars must be arrays of objects:
+  ```json
+  "envVars": [
+    { "name": "KEY", "value": "VALUE" }
+  ]
+  ```
 
 ## Project-Specific Guidelines
 
