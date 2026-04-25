@@ -4,10 +4,6 @@ import sys
 import time
 import requests
 from datetime import datetime
-from dotenv import load_dotenv
-
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
-
 from strands import Agent
 from strands_tools import current_time
 from strands.tools.mcp.mcp_client import MCPClient
@@ -17,16 +13,16 @@ from bedrock_agentcore.memory.integrations.strands.session_manager import AgentC
 from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig, RetrievalConfig
 from model.load import load_model
 
-# agentcore dev discards stderr/stdout, so also write to a file that can be tailed:
-#   tail -f AgentCoreProject/app/CustomerAssistantAgent/agent.log
-_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent.log")
+_log_handlers = [logging.StreamHandler(sys.stderr)]
+try:
+    _log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent.log")
+    _log_handlers.append(logging.FileHandler(_log_file, mode="a"))
+except OSError:
+    pass  # read-only filesystem (deployed runtime)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stderr),
-        logging.FileHandler(_LOG_FILE, mode="a"),
-    ],
+    handlers=_log_handlers,
     force=True,
 )
 
