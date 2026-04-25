@@ -40,6 +40,7 @@ cdk.out
 # AgentCore
 **/agentcore/.cache/
 **/agentcore/.cli/
+**/agentcore/agentcore.json
 cognito_config.json
 
 # Logs
