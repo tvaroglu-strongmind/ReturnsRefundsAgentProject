@@ -1,0 +1,125 @@
+{
+  "$schema": "https://schema.agentcore.aws.dev/v1/agentcore.json",
+  "name": "AgentCoreProject",
+  "version": 1,
+  "managedBy": "CDK",
+  "tags": {
+    "agentcore:created-by": "agentcore-cli",
+    "agentcore:project-name": "AgentCoreProject"
+  },
+  "runtimes": [
+    {
+      "name": "CustomerAssistantAgent",
+      "build": "CodeZip",
+      "entrypoint": "main.py",
+      "codeLocation": "app/CustomerAssistantAgent/",
+      "runtimeVersion": "PYTHON_3_14",
+      "envVars": [
+        {
+          "name": "MEMORY_ID",
+          "value": "YOUR_VALUE"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "us-west-2"
+        },
+        {
+          "name": "GATEWAY_URL",
+          "value": "YOUR_VALUE"
+        },
+        {
+          "name": "GATEWAY_CLIENT_ID",
+          "value": "YOUR_VALUE"
+        },
+        {
+          "name": "GATEWAY_CLIENT_SECRET",
+          "value": "YOUR_VALUE"
+        },
+        {
+          "name": "GATEWAY_TOKEN_ENDPOINT",
+          "value": "YOUR_VALUE"
+        },
+        {
+          "name": "GATEWAY_SCOPE",
+          "value": "YOUR_VALUE"
+        }
+      ],
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
+    }
+  ],
+  "memories": [
+    {
+      "name": "CustomerAssistantMemory",
+      "eventExpiryDuration": 7,
+      "strategies": [
+        {
+          "type": "SEMANTIC",
+          "namespaces": [
+            "/facts/{actorId}/"
+          ]
+        },
+        {
+          "type": "SUMMARIZATION",
+          "namespaces": [
+            "/summaries/{actorId}/{sessionId}/"
+          ]
+        },
+        {
+          "type": "USER_PREFERENCE",
+          "namespaces": [
+            "/preferences/{actorId}/"
+          ]
+        },
+        {
+          "type": "EPISODIC",
+          "namespaces": [
+            "/episodes/{actorId}/{sessionId}/"
+          ],
+          "reflectionNamespaces": [
+            "/episodes/{actorId}/"
+          ]
+        }
+      ]
+    }
+  ],
+  "credentials": [],
+  "evaluators": [],
+  "onlineEvalConfigs": [],
+  "agentCoreGateways": [
+    {
+      "name": "workshop-gateway",
+      "description": "Gateway for workshop-gateway",
+      "targets": [
+        {
+          "name": "data-lookup",
+          "targetType": "lambdaFunctionArn",
+          "lambdaFunctionArn": {
+            "lambdaArn": "YOUR_VALUE",
+            "toolSchemaFile": "./tool_specs/data_lookup.json"
+          }
+        },
+        {
+          "name": "policy-retrieval",
+          "targetType": "lambdaFunctionArn",
+          "lambdaFunctionArn": {
+            "lambdaArn": "YOUR_VALUE",
+            "toolSchemaFile": "./tool_specs/policy_retrieval.json"
+          }
+        }
+      ],
+      "authorizerType": "CUSTOM_JWT",
+      "authorizerConfiguration": {
+        "customJwtAuthorizer": {
+          "discoveryUrl": "YOUR_VALUE",
+          "allowedClients": [
+            "YOUR_VALUE"
+          ]
+        }
+      },
+      "enableSemanticSearch": true,
+      "exceptionLevel": "NONE"
+    }
+  ],
+  "policyEngines": []
+}

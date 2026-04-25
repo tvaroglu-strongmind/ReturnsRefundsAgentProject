@@ -1,0 +1,62 @@
+{
+  "tools": [
+    {
+      "name": "policy_retrieval",
+      "description": "Retrieve return policy information from the Bedrock Knowledge Base. Query for policies by product category, country, or specific policy questions.",
+      "inputSchema": {
+        "type": "object",
+        "description": "Parameters for policy retrieval",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The policy query text (e.g., 'electronics return policy in US', 'return window for clothing')"
+          }
+        },
+        "required": ["query"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Policy retrieval results",
+        "properties": {
+          "found": {
+            "type": "boolean",
+            "description": "Whether any policy information was found"
+          },
+          "query": {
+            "type": "string",
+            "description": "The original query text"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of policy results found"
+          },
+          "policies": {
+            "type": "array",
+            "description": "List of relevant policy excerpts",
+            "items": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string",
+                  "description": "The policy text content"
+                },
+                "relevance_score": {
+                  "type": "number",
+                  "description": "Relevance score from the knowledge base (0.0 to 1.0)"
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Source document URI"
+                }
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if retrieval failed"
+          }
+        }
+      }
+    }
+  ]
+}

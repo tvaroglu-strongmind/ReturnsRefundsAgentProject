@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "UV Sync on pyproject.toml Changes",
+  "description": "Automatically runs 'uv sync' when pyproject.toml is edited to install new or updated dependencies",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/pyproject.toml"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd AgentCoreProject/app/CustomerAssistantAgent && uv sync",
+    "timeout": 120
+  }
+}
